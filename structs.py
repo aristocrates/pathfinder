@@ -210,12 +210,33 @@ class Union:
         return x_wrap.get_parent().value
 
 class PairingHeap:
+    """
+    With reference to
+    https://www.cise.ufl.edu/~sahni/dsaaj/enrich/c13/pairing.htm
+    """
+    class Wrapper_node:
+        def __init__(self, val):
+            pass
     def __init__(self):
         self.root = None
+        self.size = 0
 
     def get_min(self):
         return self.root.value
 
+    def is_empty(self):
+        return self.size == 0
+
+    def merge(self, tree):
+        pass
+    def remove(self, val):
+        pass
+    def put(self, val):
+        pass
+    def decrease_key(self):
+        pass
+    def delete_min(self):
+        pass
 def neighboring_points(p):
     """
     Gets the 8 integer points surrounding p
