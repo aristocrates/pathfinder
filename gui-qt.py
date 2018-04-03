@@ -8,7 +8,7 @@ Written with reference to http://zetcode.com/gui/pyqt5
 
 import sys
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QWidget, QAction
-from PyQt5.QtWidgets import QMainWindow, QMenu
+from PyQt5.QtWidgets import QMainWindow, QMenu, QVBoxLayout
 from PyQt5.QtSvg import QSvgWidget
 
 class CenteredWindow(QMainWindow):
@@ -44,6 +44,10 @@ class CenteredWindow(QMainWindow):
         exitAct    = QAction("Exit", self)
         exitAct.triggered.connect(self.close)
         fileMenu.addAction(exitAct)
+
+        svgMap     = QSvgWidget('Caltech_Map.svg')
+        svgMap.setGeometry(50, 50, 759, 668)
+        self.setCentralWidget(svgMap)
 
     def open_map(self):
         pass

@@ -5,3 +5,5 @@ __pycache__
 # binary formats
 *.pdf
 *.svg
+!Caltech_Map.svg
+!Caltech_Map.pdf
