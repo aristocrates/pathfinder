@@ -18,9 +18,7 @@ class CenteredWindow(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.resize(667, 500)
         self.center()
-
         self.setWindowTitle('Center')
 
         menubar  = self.menuBar()
@@ -51,7 +49,7 @@ class CenteredWindow(QMainWindow):
 
         paths, attributes = svg2paths('Caltech_Map.svg')
         xmin, xmax, ymin, ymax = paths[0].bbox()
-        self.resize((xmax - xmin) / 2, (ymax - ymin) / 2)
+        self.resize((xmax - xmin) / 1.25, (ymax - ymin) / 1.25)
 
     def open_map(self):
         pass
