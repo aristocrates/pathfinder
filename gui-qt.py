@@ -10,7 +10,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QWidget, QAction
 from PyQt5.QtWidgets import QMainWindow, QMenu, QVBoxLayout
 from PyQt5.QtSvg import QSvgWidget
-
+from svgpathtools import svg2paths
 class CenteredWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -48,6 +48,10 @@ class CenteredWindow(QMainWindow):
         svgMap     = QSvgWidget('Caltech_Map.svg')
         svgMap.setGeometry(50, 50, 759, 668)
         self.setCentralWidget(svgMap)
+
+        paths, attributes = svg2paths('Caltech_Map.svg')
+        xmin, xmax, ymin, ymax = paths[0].bbox()
+        self.resize((xmax - xmin) / 2, (ymax - ymin) / 2)
 
     def open_map(self):
         pass
