@@ -60,6 +60,9 @@ class CenteredWindow(QMainWindow):
     def save(self):
         pass
 
+    def resize_map(self, center, factor):
+        pass
+
     def center(self):
         frame_geo  = self.frameGeometry()
         center_pos = QDesktopWidget().availableGeometry().center()
