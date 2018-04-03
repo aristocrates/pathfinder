@@ -7,3 +7,6 @@ __pycache__
 *.svg
 !Caltech_Map.svg
 !Caltech_Map.pdf
+
+# ignore the venv
+venv
