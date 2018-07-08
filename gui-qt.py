@@ -107,10 +107,10 @@ class MapItem(QGraphicsSvgItem):
     """
     Captures mouse events with coordinates relative to the actual map
     """
-    def __init__(self, r, *args):
+    def __init__(self, *args):
         super(MapItem, self).__init__(*args)
         self.draw_active = False
-        self.r = r
+        self.r = None
         self.BLACK = QColor(0, 0, 0)
         self.BLUE  = QColor(0, 0, 255)
 
@@ -244,6 +244,7 @@ class SvgView(QGraphicsView):
         s.addItem(self.svgItem)
         s.addItem(self.outlineItem)
 
+        self.svgItem.setRadius(self.r)
         self.svgItem.makeGrid(self.num_x, self.num_y,
                               self.svgItem.boundingRect().width(),
                               self.svgItem.boundingRect().height())
