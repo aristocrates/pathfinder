@@ -1,0 +1,6 @@
+Packages installed for development:
+ * python 3.6.6
+ * PyQt5 5.10.1
+
+Note that while this project may run fine under different versions of the above
+packages, no explicit effort was made to ensure compatibility.

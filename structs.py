@@ -1,6 +1,9 @@
 """
 Module of data structures to use for the application
 
+Ideally these will be sorted into more organized modules, but for now they are
+all here in this utilities-like module due to lack of imagination.
+
 Nicholas Meyer
 """
 

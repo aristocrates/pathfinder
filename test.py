@@ -1,10 +1,112 @@
 """
-A testing module.
+Tests
 
 Nicholas Meyer
 """
+import numpy as np
+
 import structs
 from structs import Point, Node, make_forest
+from grid import Grid
+
+def squared_distance(tup1, tup2):
+    return sum([(k1 - tup2[i])**2 for i, k1 in enumerate(tup1)])
+
+def test_distance():
+    """
+    Test the squared distance function used in testing the grid
+    """
+    print("Testing squared distance function")
+    p1 = (1, 2, 3)
+    p2 = (6, 7, 8)
+    assert_same(squared_distance(p1, p2), 75)
+    p1 = (0, 0)
+    p2 = (3, 4)
+    assert_same(squared_distance(p1, p2), 5**2)
+    print("All tests passed")
+
+def test_grid():
+    print("Testing grid")
+    test_distance()
+
+    g = Grid(100, 400, 15.2, 4.7)
+    allPoints = g.allPoints()
+    assert(len(allPoints) == 100 * 400)
+
+    print("Testing bounds")
+    assert(g.bounds((1, 2)))
+    assert(g.bounds((4.8, 4.6)))
+    assert(g.bounds((0.01, 0.002)))
+    assert(g.bounds((15.19, 4.69)))
+    assert(not g.bounds((4.8, 4.8)))
+    assert(not g.bounds((-1, 3)))
+    assert(not g.bounds((3, -0.01)))
+    assert(not g.bounds((15.3, 4.6)))
+
+    print("Testing contains")
+    assert(g.contains((0, 0)))
+    assert(g.contains((0.000001, -0.000001), neighborhood_thresh = 1e-4))
+    assert(g.contains((15.2 / 100, 4.7 / 400), neighborhood_thresh = 1e-4))
+    assert(not g.contains((15.2 * 1.5 / 100, 4.7 / 400),
+                          neighborhood_thresh = 1e-4))
+    assert(not g.contains((15.2 / 100, 4.7 * 1.5 / 400),
+                          neighborhood_thresh = 1e-4))
+    assert(g.contains((15.2, 4.7), neighborhood_thresh = 1e-4))
+    # now do a thorough test of all the grid points
+    for x_coord in range(101):
+        for y_coord in range(401):
+            x_iter = 15.2 / 100
+            y_iter = 4.7 / 400
+            assert(g.contains((x_iter * x_coord, y_iter * y_coord),
+                              neighborhood_thresh = 1e-4))
+            # generate random noise above neighborhood_thresh
+            noise_coords_x = [0.101 + 0.798 * np.random.uniform()
+                              for k in range(10)]
+            noise_coords_y = [0.101 + 0.798 * np.random.uniform()
+                              for k in range(10)]
+            for x_noise in noise_coords_x:
+                for y_noise in noise_coords_y:
+                    assert(not g.contains((x_iter * (x_coord + x_noise),
+                                           y_iter + (y_coord + y_noise)),
+                                          neighborhood_thresh = 1e-1))
+
+    print("Testing points within radius straightforward case")
+    rad = 1
+    select_point = (5, 2)
+    points = g.pointsWithinRadius(select_point, rad)
+    for p in points:
+        assert(g.bounds(p))
+        assert(g.contains(p))
+        assert(squared_distance(select_point, p) <= rad**2)
+
+    print("Testing points within radius edge case")
+    rad = 2
+    select_point = (15, 4)
+    points = g.pointsWithinRadius(select_point, rad)
+    for p in points:
+        assert(g.bounds(p))
+        assert(g.contains(p))
+        assert(squared_distance(select_point, p) <= rad**2)
+
+    print("Testing enabled points")
+    assert(len(g.enabledPoints()) == 0)
+    rad = 1
+    select_point = (1, 1)
+    points_to_enable = g.pointsWithinRadius(select_point, rad)
+    newly_enabled = g.notEnabledIn(points_to_enable)
+    g.setEnabledPoints(newly_enabled)
+    assert(len(points_to_enable) == len(newly_enabled))
+    newly_enabled2 = g.notEnabledIn(points_to_enable)
+    assert(len(newly_enabled2) == 0)
+    point_append_list = [(4, 4), (3, 3)]
+    point_append_list = [g.nearestPoint(k) for k in point_append_list]
+    assert(len(point_append_list) == len(g.notEnabledIn(point_append_list)))
+    g.setEnabledPoints(point_append_list)
+    assert(len(g.enabledPoints())
+           == len(newly_enabled) + len(point_append_list))
+    g.clearEnabled()
+    assert(len(g.enabledPoints()) == 0)
+    print("All tests passed")
 
 def test_link():
     print("Testing single link")
