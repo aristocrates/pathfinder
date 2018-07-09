@@ -61,11 +61,23 @@ class Grid:
         for point in points_list:
             point = tuple(point)
             if self.contains(point):
-                x = round(point[0] / self.x_res)
-                y = round(point[1] / self.y_res)
-                point_int = (x, y)
+                int_point = self.integerPoint(point)
                 self.enabled_points[point] = point
-                self.enabled_points_as_int[point_int] = point_int
+                self.enabled_points_as_int[int_point] = int_point
+
+    def integerPoint(self, point):
+        x = round(point[0] / self.x_res)
+        y = round(point[1] / self.y_res)
+        return (x, y)
+
+    def disablePoints(self, points_list):
+        for point in points_list:
+            point = tuple(point)
+            int_point = self.integerPoint(point)
+            if point in self.enabled_points:
+                self.enabled_points.pop(point)
+                assert(int_point) in self.enabled_points_as_int
+                self.enabled_points_as_int.pop(int_point)
 
     def enabledPoints(self):
         return self.enabled_points

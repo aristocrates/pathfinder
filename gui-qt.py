@@ -8,6 +8,7 @@ and https://github.com/baoboa/pyqt5/blob/master/examples/painting/svgviewer/svgv
 """
 import sys
 import PyQt5
+import json
 
 # events
 from PyQt5.QtCore import QEvent
@@ -27,7 +28,7 @@ from grid import Grid
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QWidget, QAction
 from PyQt5.QtWidgets import QMainWindow, QMenu, QVBoxLayout
 from PyQt5.QtCore import QFile, QSize
-from PyQt5.QtGui import QBrush, QColor, QImage, QPainter, QPixmap, QPen
+from PyQt5.QtGui import QBrush, QColor, QImage, QPainter, QPixmap, QPen, QCursor
 from PyQt5.QtWidgets import (QActionGroup, QFileDialog, QGraphicsItem, QGraphicsRectItem,
                              QGraphicsScene, QGraphicsView, QMessageBox)
 from PyQt5.QtSvg import QSvgWidget, QGraphicsSvgItem
@@ -103,6 +104,13 @@ class CenteredWindow(QMainWindow):
         frame_geo.moveCenter(center_pos)
         self.move(frame_geo.topLeft())
 
+def fillCircle(scene, x, y, r, color):
+    """
+    Adds a circle into a graphics scene
+    """
+    return scene.addEllipse(x - r, y - r, r * 2, r * 2,
+                        pen = QColor(0, 0, 0, 0), brush = color)
+
 class MapItem(QGraphicsSvgItem):
     """
     Captures mouse events with coordinates relative to the actual map
@@ -113,18 +121,19 @@ class MapItem(QGraphicsSvgItem):
         self.r = None
         self.BLACK = QColor(0, 0, 0)
         self.BLUE  = QColor(0, 0, 255)
+        self.grid_point_stack = []
 
-    def fillCircle(self, x, y, r, color):
-        # test
-        s = self.scene()
-        s.addEllipse(x - r, y - r, r * 2, r * 2,
-                     pen = QColor(0, 0, 0, 0), brush = color)
+    def removeItem(self, item):
+        self.scene().removeItem(item)
 
     def setRadius(self, rad):
         self.r = rad
 
     def save(self, filename):
-        pass
+        grid_point_data = {"enabled": self.grid.enabledPoints(),
+                           "int": self.grid.enabledPointsAsInt()}
+        with open(filename, "w") as f:
+            json.dump(grid_point_data, f)
 
     def makeGrid(self, num_x, num_y, width, height):
         self.num_x = num_x
@@ -135,7 +144,18 @@ class MapItem(QGraphicsSvgItem):
 
     def drawGridPoints(self, points, color):
         for p in points:
-            self.fillCircle(p[0], p[1], 0.2, color)
+            added_ellipse = fillCircle(self.scene(), p[0], p[1], 0.2, color)
+            self.grid_point_stack[-1].append(added_ellipse)
+
+    def undoDraw(self):
+        """
+        Undoes all grid drawing from the last click and drag
+        """
+        if len(self.grid_point_stack) > 0:
+            last_draw_points = self.grid_point_stack.pop()
+            self.grid.disablePoints(last_draw_points)
+            for point in last_draw_points:
+                self.removeItem(point)
 
     def resetGrid(self):
         self.grid.clearEnabled()
@@ -144,7 +164,6 @@ class MapItem(QGraphicsSvgItem):
         if self.draw_active:
             x = event.pos().x()
             y = event.pos().y()
-            #self.fillCircle(x, y, self.r, self.BLUE)
             pointsWithinR    = self.grid.pointsWithinRadius((x, y), self.r)
             pointsToActivate = self.grid.notEnabledIn(pointsWithinR)
             self.grid.setEnabledPoints(pointsWithinR)
@@ -155,6 +174,9 @@ class MapItem(QGraphicsSvgItem):
         super(MapItem, self).mousePressEvent(event)
         if event.button() == RightButton:
             self.draw_active = True
+            self.grid_point_stack.append([])
+            # TODO: add call to mouseMoveEvent or factor out highlighting code
+            # into another function so that single clicks still add points
             event.accept()
 
     def mouseReleaseEvent(self, event):
@@ -181,6 +203,7 @@ class SvgView(QGraphicsView):
         self.setDragMode(QGraphicsView.ScrollHandDrag)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
 
+        self.TRANSLUCENT_WHITE = QColor(255, 255, 255, 180)
         # Prepare background check-board pattern.
         tilePixmap = QPixmap(64, 64)
         tilePixmap.fill(Qt.white)
@@ -198,9 +221,11 @@ class SvgView(QGraphicsView):
         self.zoom = Zoom()
 
         # position tracker
-        self.x = None
-        self.y = None
+        self.x = self.width() / 2
+        self.y = self.height() / 2
         self.r = 10
+        # scales when zooming
+        #self.r_mult = 1
 
     def openFile(self, svg_file):
         if not svg_file.exists():
@@ -251,11 +276,21 @@ class SvgView(QGraphicsView):
         self.svgItem.resetGrid()
 
         s.setSceneRect(self.outlineItem.boundingRect().adjusted(-10, -10, 10, 10))
+        self.cursor_circle = fillCircle(self.outlineItem.scene(), self.x, self.y,
+                                        self.r,
+                                        self.TRANSLUCENT_WHITE)
 
     def setHighQualityAntialiasing(self, highQualityAntialiasing):
         if QGLFormat.hasOpenGL():
             self.setRenderHint(QPainter.HighQualityAntialiasing,
                     highQualityAntialiasing)
+
+    def removeItem(self, item):
+        self.scene().removeItem(item)
+
+    def setRadius(self, r):
+        self.r = r
+        self.svgItem.setRadius(r)
 
     def setViewBackground(self, enable):
         if self.backgroundItem:
@@ -266,37 +301,41 @@ class SvgView(QGraphicsView):
             self.outlineItem.setVisible(enable)
 
     def paintEvent(self, event):
-    #     # if self.renderer == SvgView.Image:
-    #     #     if self.image.size() != self.viewport().size():
-    #     #         self.image = QImage(self.viewport().size(),
-    #     #                 QImage.Format_ARGB32_Premultiplied)
-
-    #     #     imagePainter = QPainter(self.image)
-    #     #     QGraphicsView.render(self, imagePainter)
-    #     #     imagePainter.end()
-
-    #     #     p = QPainter(self.viewport())
-    #     #     p.drawImage(0, 0, self.image)
-    #     #     print("this one")
-    #     #     p.addEllipse(500, 500, 30, 30)
-    #     # else:
         super(SvgView, self).paintEvent(event)
         p = QPainter(self.viewport())
-        # if self.x is not None and self.y is not None:
-        #     p.drawEllipse(self.x - self.r, self.y - self.r,
-        #                   2 * self.r, 2 * self.r)
+
+    def updateCursorCircle(self):
+        self.removeItem(self.cursor_circle)
+        transformedPos = self.mapToScene(self.pos)
+        x = transformedPos.x()
+        y = transformedPos.y()
+        self.cursor_circle = fillCircle(self.outlineItem.scene(), x, y,
+                                        self.r,
+                                        self.TRANSLUCENT_WHITE)
 
     def mouseMoveEvent(self, event):
         super(SvgView, self).mouseMoveEvent(event)
-        self.x = event.x()
-        self.y = event.y()
-        self.update()
+        self.pos = event.pos() #QCursor.pos()
+        self.updateCursorCircle()
 
     def wheelEvent(self, event):
         self.zoom.change_scroll(event.angleDelta().y())
         factor = pow(1.1, self.zoom.zoom_delta())
         self.scale(factor, factor)
+        # TODO: test floating point problems with this implementation
+        # (repeatedly zoom in and out and see if it becomes inaccurate)
+        #self.r_mult = self.r_mult * factor
+        self.updateCursorCircle()
         event.accept()
+
+    def keyPressEvent(self, event):
+        super(SvgView, self).keyPressEvent(event)
+        if event.key() == Qt.Key_Plus:
+            self.setRadius(self.r * 1.2)
+            self.updateCursorCircle()
+        elif event.key() == Qt.Key_Minus:
+            self.setRadius(self.r / 1.2)
+            self.updateCursorCircle()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

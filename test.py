@@ -24,9 +24,13 @@ def test_distance():
     p2 = (3, 4)
     assert_same(squared_distance(p1, p2), 5**2)
     print("All tests passed")
-
-def test_grid():
+    
+def test_grid(random_seed = None):
+    if random_seed is None:
+        random_seed = np.random.randint(99999999)
     print("Testing grid")
+    print("Random seed is: {}".format(random_seed))
+    np.random.seed(random_seed)
     test_distance()
 
     g = Grid(100, 400, 15.2, 4.7)
@@ -34,31 +38,31 @@ def test_grid():
     assert(len(allPoints) == 100 * 400)
 
     print("Testing bounds")
-    assert(g.bounds((1, 2)))
-    assert(g.bounds((4.8, 4.6)))
-    assert(g.bounds((0.01, 0.002)))
-    assert(g.bounds((15.19, 4.69)))
-    assert(not g.bounds((4.8, 4.8)))
-    assert(not g.bounds((-1, 3)))
-    assert(not g.bounds((3, -0.01)))
-    assert(not g.bounds((15.3, 4.6)))
+    assert g.bounds((1, 2))
+    assert g.bounds((4.8, 4.6))
+    assert g.bounds((0.01, 0.002))
+    assert g.bounds((15.19, 4.69))
+    assert not g.bounds((4.8, 4.8))
+    assert not g.bounds((-1, 3))
+    assert not g.bounds((3, -0.01))
+    assert not g.bounds((15.3, 4.6))
 
     print("Testing contains")
-    assert(g.contains((0, 0)))
-    assert(g.contains((0.000001, -0.000001), neighborhood_thresh = 1e-4))
-    assert(g.contains((15.2 / 100, 4.7 / 400), neighborhood_thresh = 1e-4))
-    assert(not g.contains((15.2 * 1.5 / 100, 4.7 / 400),
-                          neighborhood_thresh = 1e-4))
-    assert(not g.contains((15.2 / 100, 4.7 * 1.5 / 400),
-                          neighborhood_thresh = 1e-4))
-    assert(g.contains((15.2, 4.7), neighborhood_thresh = 1e-4))
+    assert g.contains((0, 0))
+    assert g.contains((0.000001, -0.000001), neighborhood_thresh = 1e-4)
+    assert g.contains((15.2 / 100, 4.7 / 400), neighborhood_thresh = 1e-4)
+    assert not g.contains((15.2 * 1.5 / 100, 4.7 / 400),
+                          neighborhood_thresh = 1e-4)
+    assert not g.contains((15.2 / 100, 4.7 * 1.5 / 400),
+                          neighborhood_thresh = 1e-4)
+    assert g.contains((15.2, 4.7), neighborhood_thresh = 1e-4)
     # now do a thorough test of all the grid points
     for x_coord in range(101):
         for y_coord in range(401):
             x_iter = 15.2 / 100
             y_iter = 4.7 / 400
-            assert(g.contains((x_iter * x_coord, y_iter * y_coord),
-                              neighborhood_thresh = 1e-4))
+            assert g.contains((x_iter * x_coord, y_iter * y_coord),
+                              neighborhood_thresh = 1e-4)
             # generate random noise above neighborhood_thresh
             noise_coords_x = [0.101 + 0.798 * np.random.uniform()
                               for k in range(10)]
@@ -66,46 +70,105 @@ def test_grid():
                               for k in range(10)]
             for x_noise in noise_coords_x:
                 for y_noise in noise_coords_y:
-                    assert(not g.contains((x_iter * (x_coord + x_noise),
+                    assert not g.contains((x_iter * (x_coord + x_noise),
                                            y_iter + (y_coord + y_noise)),
-                                          neighborhood_thresh = 1e-1))
+                                          neighborhood_thresh = 1e-1)
 
     print("Testing points within radius straightforward case")
     rad = 1
     select_point = (5, 2)
     points = g.pointsWithinRadius(select_point, rad)
     for p in points:
-        assert(g.bounds(p))
-        assert(g.contains(p))
-        assert(squared_distance(select_point, p) <= rad**2)
+        assert g.bounds(p)
+        assert g.contains(p)
+        assert squared_distance(select_point, p) <= rad**2
 
     print("Testing points within radius edge case")
     rad = 2
     select_point = (15, 4)
     points = g.pointsWithinRadius(select_point, rad)
     for p in points:
-        assert(g.bounds(p))
-        assert(g.contains(p))
-        assert(squared_distance(select_point, p) <= rad**2)
+        assert g.bounds(p)
+        assert g.contains(p)
+        assert squared_distance(select_point, p) <= rad**2
 
     print("Testing enabled points")
-    assert(len(g.enabledPoints()) == 0)
+    assert len(g.enabledPoints()) == 0
     rad = 1
     select_point = (1, 1)
     points_to_enable = g.pointsWithinRadius(select_point, rad)
     newly_enabled = g.notEnabledIn(points_to_enable)
     g.setEnabledPoints(newly_enabled)
-    assert(len(points_to_enable) == len(newly_enabled))
+    assert len(points_to_enable) == len(newly_enabled)
     newly_enabled2 = g.notEnabledIn(points_to_enable)
-    assert(len(newly_enabled2) == 0)
+    assert len(newly_enabled2) == 0
     point_append_list = [(4, 4), (3, 3)]
     point_append_list = [g.nearestPoint(k) for k in point_append_list]
-    assert(len(point_append_list) == len(g.notEnabledIn(point_append_list)))
+    assert len(point_append_list) == len(g.notEnabledIn(point_append_list))
     g.setEnabledPoints(point_append_list)
-    assert(len(g.enabledPoints())
-           == len(newly_enabled) + len(point_append_list))
+    assert (len(g.enabledPoints())
+            == len(newly_enabled) + len(point_append_list))
     g.clearEnabled()
-    assert(len(g.enabledPoints()) == 0)
+    assert len(g.enabledPoints()) == 0
+
+    print("Testing disable points")
+    num_disable_point_test = 400
+    assert num_disable_point_test > 0, ("Error in test file: "
+                                        + "num total must be > 0")
+    max_repeat_tries = 100
+    num_repeats = 0
+    repeats_exist = True
+    while repeats_exist and num_repeats < max_repeat_tries:
+        point_append_list2 = [(np.random.uniform() * g.width,
+                               np.random.uniform() * g.height)
+                              for k in range(num_disable_point_test)]
+        point_append_list2 = [g.nearestPoint(k) for k in point_append_list2]
+        # check for repeats and discard and restart if any exist
+        # this should be pretty rare
+        # (with appropriately sized num_disable_point_test)
+        # but will cause test failures if not caught
+        repeat_hash = {}
+        for p in point_append_list2:
+            if p in repeat_hash:
+                print("Repeat point found")
+                num_repeats += 1
+                break
+            else:
+                repeat_hash[p] = p
+        else: # no repeat found
+            repeats_exist = False
+    if num_repeats >= max_repeat_tries:
+        print("Test inconclusive; points repeated too many times")
+        print("Try increasing repeat tries or decreasing total number")
+        return
+    assert len(g.enabledPoints()) == 0
+    g.setEnabledPoints(point_append_list2)
+    # import pdb; pdb.set_trace()
+    # print(len(g.enabledPoints()))
+    assert len(g.enabledPoints()) == num_disable_point_test
+    num_indices_remove = 30
+    assert num_indices_remove > 0, ("Error in test file: num index "
+                                    + "to remove must be > 0")
+    assert num_indices_remove <= num_disable_point_test, ("Error in test file:"
+                                                          + "num index to "
+                                                          + "remove must be"
+                                                          + " <= num total")
+    indices_to_remove = np.random.choice(range(num_disable_point_test),
+                                         num_indices_remove,
+                                         replace = False)
+
+    for p in point_append_list2:
+        assert g.contains(p)
+    g.disablePoints([point_append_list2[i] for i in indices_to_remove])
+    enabled_post_rm = g.enabledPoints()
+    assert len(enabled_post_rm) == (num_disable_point_test
+                                    - num_indices_remove)
+    for index, p in enumerate(point_append_list2):
+        assert g.contains(p)
+        if index in indices_to_remove:
+            assert p not in enabled_post_rm
+        else:
+            assert p in enabled_post_rm
     print("All tests passed")
 
 def test_link():
