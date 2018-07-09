@@ -2,8 +2,15 @@
 __pycache__
 *.pyc
 
+# sample code
+example
+stackoverflow
+
 # binary formats
 *.pdf
 *.svg
 !Caltech_Map.svg
 !Caltech_Map.pdf
+
+# ignore the virtualenv
+venv
