@@ -63,6 +63,9 @@ class CenteredWindow(QMainWindow):
         saveAct    = QAction("Save", self)
         saveAct.triggered.connect(self.save)
         fileMenu.addAction(saveAct)
+        saveAsAct  = QAction("Save as", self)
+        saveAsAct.triggered.connect(self.saveAs)
+        fileMenu.addAction(saveAsAct)
 
         exitAct    = QAction("Exit", self)
         exitAct.triggered.connect(self.close)
@@ -81,7 +84,7 @@ class CenteredWindow(QMainWindow):
         if not filename:
             filename, _ = QFileDialog.getOpenFileName(self, "Open SVG File",
                                                       self.currentPath,
-                                                      "SVG files (*.svg, *.svgz, *.svg.gz)")
+                                                      "SVG files (*.svg *.svgz *.svg.gz)")
         if filename:
             svg_file = QFile(filename)
             if not svg_file.exists():
@@ -92,13 +95,24 @@ class CenteredWindow(QMainWindow):
 
                 self.resize(self.view.sizeHint() + QSize(80, 80 + self.menuBar().height()))
 
-    def open_path_data(self):
-        pass
+    def open_path_data(self, filename = None):
+        if not filename:
+            filename, _ = QFileDialog.getOpenFileName(self, "Open path data",
+                                                      self.currentPath,
+                                                      "All files (*.*)")
 
-    def save(self, filename):
-        pass
+        if filename:
+            path_file = QFile(filename)
+            if not path_file.exists():
+                QMessageBox.critical(self, "Open path data",
+                                     "Could not open file '{}'".format(filename))
+            else:
+                pass
 
-    def resize_map(self, center, factor):
+    def save(self, filename = None):
+        self.view.svgItem.save(filename)
+
+    def saveAs(self):
         pass
 
     def center(self):
@@ -133,10 +147,14 @@ class MapItem(QGraphicsSvgItem):
         self.r = rad
 
     def save(self, filename):
-        grid_point_data = {"enabled": self.grid.enabledPoints(),
-                           "int": self.grid.enabledPointsAsInt()}
-        with open(filename, "w") as f:
-            json.dump(grid_point_data, f)
+        if not filename:
+            pass
+
+        if filename:
+            grid_point_data = {"enabled": self.grid.enabledPoints(),
+                               "int": self.grid.enabledPointsAsInt()}
+            with open(filename, "w") as f:
+                json.dump(grid_point_data, f)
 
     def makeGrid(self, num_x, num_y, width, height):
         self.num_x = num_x
