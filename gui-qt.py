@@ -48,6 +48,7 @@ class CenteredWindow(QMainWindow):
 
         menubar  = self.menuBar()
         fileMenu = menubar.addMenu('File')
+        editMenu = menubar.addMenu('Edit')
 
         openMenu   = QMenu("Open", self)
         openMapAct = QAction("Map", self)
@@ -70,6 +71,13 @@ class CenteredWindow(QMainWindow):
         exitAct    = QAction("Exit", self)
         exitAct.triggered.connect(self.close)
         fileMenu.addAction(exitAct)
+
+        undo = QAction("Undo", self)
+        undo.triggered.connect(self.undo)
+        editMenu.addAction(undo)
+        redo = QAction("Redo", self)
+        redo.triggered.connect(self.redo)
+        editMenu.addAction(redo)
 
         self.view = SvgView()
 
@@ -115,6 +123,12 @@ class CenteredWindow(QMainWindow):
     def saveAs(self):
         pass
 
+    def undo(self):
+        pass
+
+    def redo(self):
+        pass
+
     def center(self):
         frame_geo  = self.frameGeometry()
         center_pos = QDesktopWidget().availableGeometry().center()
@@ -139,6 +153,7 @@ class MapItem(QGraphicsSvgItem):
         self.BLACK = QColor(0, 0, 0)
         self.BLUE  = QColor(0, 0, 255)
         self.grid_point_stack = []
+        self.grid_point_redo_stack = []
 
     def removeItem(self, item):
         self.scene().removeItem(item)
@@ -177,6 +192,17 @@ class MapItem(QGraphicsSvgItem):
             self.grid.disablePoints(last_draw_points)
             for point in last_draw_points:
                 self.removeItem(point)
+            self.grid_point_redo_stack.append(last_draw_points)
+
+    def redoDraw(self):
+        """
+        Redoes the last undo
+        """
+        if len(self.grid_point_redo_stack) > 0:
+            last_draw_redo = self.grid_point_redo_stack.pop()
+            self.grid_point_stack.append([])
+            self.grid.setEnabledPoints(last_draw_redo)
+            self.drawGridPoints()
 
     def resetGrid(self):
         self.grid.clearEnabled()
