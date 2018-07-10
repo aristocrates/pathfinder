@@ -9,30 +9,16 @@ and https://github.com/baoboa/pyqt5/blob/master/examples/painting/svgviewer/svgv
 import sys
 import PyQt5
 import json
-
-# events
-from PyQt5.QtCore import QEvent
-MouseMove           = QEvent.MouseMove
-MouseButtonPress    = QEvent.MouseButtonPress
-MouseButtonRelease  = QEvent.MouseButtonRelease
-MouseButtonDblClick = QEvent.MouseButtonDblClick
-
-from PyQt5.QtCore import Qt
-LeftButton  = Qt.LeftButton
-RightButton = Qt.RightButton
-
 from scroll import Zoom
 from grid import Grid
 
-# qt gui elements
-from PyQt5.QtWidgets import QApplication, QDesktopWidget, QWidget, QAction
-from PyQt5.QtWidgets import QMainWindow, QMenu, QVBoxLayout
-from PyQt5.QtCore import QFile, QSize
+from PyQt5.QtWidgets import (QApplication, QDesktopWidget, QWidget,
+                             QAction, QMainWindow, QMenu, QVBoxLayout,
+                             QActionGroup, QFileDialog, QGraphicsItem,
+                             QGraphicsRectItem, QGraphicsScene, QGraphicsView, QMessageBox)
 from PyQt5.QtGui import QBrush, QColor, QImage, QPainter, QPixmap, QPen, QCursor
-from PyQt5.QtWidgets import (QActionGroup, QFileDialog, QGraphicsItem, QGraphicsRectItem,
-                             QGraphicsScene, QGraphicsView, QMessageBox)
 from PyQt5.QtSvg import QSvgWidget, QGraphicsSvgItem
-from PyQt5.QtOpenGL import QGL, QGLFormat, QGLWidget
+from PyQt5.QtCore import Qt, QEvent, QFile, QSize
 
 class EditorWindow(QMainWindow):
     def __init__(self):
@@ -219,7 +205,7 @@ class EditorMap(QGraphicsSvgItem):
 
     def mousePressEvent(self, event):
         super(EditorMap, self).mousePressEvent(event)
-        if event.button() == RightButton:
+        if event.button() == Qt.RightButton:
             self.draw_active = True
             self.grid_point_stack.append([])
             # TODO: add call to mouseMoveEvent or factor out highlighting code
@@ -362,16 +348,13 @@ class EditorView(QGraphicsView):
 
     def mouseMoveEvent(self, event):
         super(EditorView, self).mouseMoveEvent(event)
-        self.pos = event.pos() #QCursor.pos()
+        self.pos = event.pos()
         self.updateCursorCircle()
 
     def wheelEvent(self, event):
         self.zoom.change_scroll(event.angleDelta().y())
         factor = pow(1.1, self.zoom.zoom_delta())
         self.scale(factor, factor)
-        # TODO: test floating point problems with this implementation
-        # (repeatedly zoom in and out and see if it becomes inaccurate)
-        #self.r_mult = self.r_mult * factor
         self.updateCursorCircle()
         event.accept()
 
