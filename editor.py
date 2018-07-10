@@ -34,7 +34,7 @@ from PyQt5.QtWidgets import (QActionGroup, QFileDialog, QGraphicsItem, QGraphics
 from PyQt5.QtSvg import QSvgWidget, QGraphicsSvgItem
 from PyQt5.QtOpenGL import QGL, QGLFormat, QGLWidget
 
-class CenteredWindow(QMainWindow):
+class EditorWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -79,7 +79,7 @@ class CenteredWindow(QMainWindow):
         redo.triggered.connect(self.redo)
         editMenu.addAction(redo)
 
-        self.view = SvgView()
+        self.view = EditorView()
 
         self.setCentralWidget(self.view)
 
@@ -142,12 +142,12 @@ def fillCircle(scene, x, y, r, color):
     return scene.addEllipse(x - r, y - r, r * 2, r * 2,
                         pen = QColor(0, 0, 0, 0), brush = color)
 
-class MapItem(QGraphicsSvgItem):
+class EditorMap(QGraphicsSvgItem):
     """
     Captures mouse events with coordinates relative to the actual map
     """
     def __init__(self, *args):
-        super(MapItem, self).__init__(*args)
+        super(EditorMap, self).__init__(*args)
         self.draw_active = False
         self.r = None
         self.BLACK = QColor(0, 0, 0)
@@ -215,10 +215,10 @@ class MapItem(QGraphicsSvgItem):
             pointsToActivate = self.grid.notEnabledIn(pointsWithinR)
             self.grid.setEnabledPoints(pointsWithinR)
             self.drawGridPoints(pointsToActivate, self.BLUE)
-        super(MapItem, self).mouseMoveEvent(event)
+        super(EditorMap, self).mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
-        super(MapItem, self).mousePressEvent(event)
+        super(EditorMap, self).mousePressEvent(event)
         if event.button() == RightButton:
             self.draw_active = True
             self.grid_point_stack.append([])
@@ -228,18 +228,18 @@ class MapItem(QGraphicsSvgItem):
 
     def mouseReleaseEvent(self, event):
         self.draw_active = False
-        super(MapItem, self).mouseReleaseEvent(event)
+        super(EditorMap, self).mouseReleaseEvent(event)
 
-class SvgView(QGraphicsView):
+class EditorView(QGraphicsView):
     """
     SVG display taken from the PyQt5 examples (see license.txt)
     """
     Native, OpenGL, Image = range(3)
 
     def __init__(self, parent=None):
-        super(SvgView, self).__init__(parent)
+        super(EditorView, self).__init__(parent)
 
-        self.renderer = SvgView.Native
+        self.renderer = EditorView.Native
         self.svgItem = None
         self.backgroundItem = None
         self.outlineItem = None
@@ -293,7 +293,7 @@ class SvgView(QGraphicsView):
         s.clear()
         self.resetTransform()
 
-        self.svgItem = MapItem(svg_file.fileName())
+        self.svgItem = EditorMap(svg_file.fileName())
         self.svgItem.setFlags(QGraphicsItem.ItemClipsToShape)
         self.svgItem.setCacheMode(QGraphicsItem.NoCache)
         self.svgItem.setZValue(0)
@@ -348,7 +348,7 @@ class SvgView(QGraphicsView):
             self.outlineItem.setVisible(enable)
 
     def paintEvent(self, event):
-        super(SvgView, self).paintEvent(event)
+        super(EditorView, self).paintEvent(event)
         p = QPainter(self.viewport())
 
     def updateCursorCircle(self):
@@ -361,7 +361,7 @@ class SvgView(QGraphicsView):
                                         self.TRANSLUCENT_WHITE)
 
     def mouseMoveEvent(self, event):
-        super(SvgView, self).mouseMoveEvent(event)
+        super(EditorView, self).mouseMoveEvent(event)
         self.pos = event.pos() #QCursor.pos()
         self.updateCursorCircle()
 
@@ -376,7 +376,7 @@ class SvgView(QGraphicsView):
         event.accept()
 
     def keyPressEvent(self, event):
-        super(SvgView, self).keyPressEvent(event)
+        super(EditorView, self).keyPressEvent(event)
         if event.key() == Qt.Key_Plus:
             self.setRadius(self.r * 1.2)
             self.updateCursorCircle()
@@ -387,7 +387,7 @@ class SvgView(QGraphicsView):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    center_frame = CenteredWindow()
-    center_frame.show()
+    editor_frame = EditorWindow()
+    editor_frame.show()
 
     sys.exit(app.exec_())
