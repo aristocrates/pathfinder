@@ -58,14 +58,14 @@ class EditorWindow(QMainWindow):
         exitAct.triggered.connect(self.close)
         fileMenu.addAction(exitAct)
 
+        self.view = EditorView()
+
         undo = QAction("Undo", self)
-        undo.triggered.connect(self.undo)
+        undo.triggered.connect(self.view.undo)
         editMenu.addAction(undo)
         redo = QAction("Redo", self)
-        redo.triggered.connect(self.redo)
+        redo.triggered.connect(self.view.redo)
         editMenu.addAction(redo)
-
-        self.view = EditorView()
 
         self.setCentralWidget(self.view)
 
@@ -109,12 +109,6 @@ class EditorWindow(QMainWindow):
     def saveAs(self):
         pass
 
-    def undo(self):
-        pass
-
-    def redo(self):
-        pass
-
     def center(self):
         frame_geo  = self.frameGeometry()
         center_pos = QDesktopWidget().availableGeometry().center()
@@ -138,7 +132,7 @@ class EditorMap(QGraphicsSvgItem):
         self.r = None
         self.BLACK = QColor(0, 0, 0)
         self.BLUE  = QColor(0, 0, 255)
-        self.grid_point_stack = []
+        self.grid_point_undo_stack = []
         self.grid_point_redo_stack = []
 
     def removeItem(self, item):
@@ -167,14 +161,14 @@ class EditorMap(QGraphicsSvgItem):
     def drawGridPoints(self, points, color):
         for p in points:
             added_ellipse = fillCircle(self.scene(), p[0], p[1], 0.2, color)
-            self.grid_point_stack[-1].append(added_ellipse)
+            self.grid_point_undo_stack[-1].append(added_ellipse)
 
     def undoDraw(self):
         """
         Undoes all grid drawing from the last click and drag
         """
-        if len(self.grid_point_stack) > 0:
-            last_draw_points = self.grid_point_stack.pop()
+        if len(self.grid_point_undo_stack) > 0:
+            last_draw_points = self.grid_point_undo_stack.pop()
             self.grid.disablePoints(last_draw_points)
             for point in last_draw_points:
                 self.removeItem(point)
@@ -186,30 +180,37 @@ class EditorMap(QGraphicsSvgItem):
         """
         if len(self.grid_point_redo_stack) > 0:
             last_draw_redo = self.grid_point_redo_stack.pop()
-            self.grid_point_stack.append([])
-            self.grid.setEnabledPoints(last_draw_redo)
-            self.drawGridPoints()
+            self.grid_point_undo_stack.append(last_draw_redo)
+            self.grid.enablePoints(last_draw_redo)
+            self.drawGridPoints(last_draw_redo)
 
     def resetGrid(self):
         self.grid.clearEnabled()
 
+    def activatePointsInRadius(self, pos):
+        pos = (pos.x(), pos.y())
+        pointsWithinR    = self.grid.pointsWithinRadius(pos, self.r)
+        pointsToActivate = self.grid.notEnabledIn(pointsWithinR)
+        self.grid.enablePoints(pointsToActivate)
+        self.drawGridPoints(pointsToActivate, self.BLUE)
+
     def mouseMoveEvent(self, event):
         if self.draw_active:
-            x = event.pos().x()
-            y = event.pos().y()
-            pointsWithinR    = self.grid.pointsWithinRadius((x, y), self.r)
-            pointsToActivate = self.grid.notEnabledIn(pointsWithinR)
-            self.grid.setEnabledPoints(pointsWithinR)
-            self.drawGridPoints(pointsToActivate, self.BLUE)
+            # x = event.pos().x()
+            # y = event.pos().y()
+            # pointsWithinR    = self.grid.pointsWithinRadius((x, y), self.r)
+            # pointsToActivate = self.grid.notEnabledIn(pointsWithinR)
+            # self.grid.enablePoints(pointsWithinR)
+            # self.drawGridPoints(pointsToActivate, self.BLUE)
+            self.activatePointsInRadius(event.pos())
         super(EditorMap, self).mouseMoveEvent(event)
 
     def mousePressEvent(self, event):
         super(EditorMap, self).mousePressEvent(event)
         if event.button() == Qt.RightButton:
             self.draw_active = True
-            self.grid_point_stack.append([])
-            # TODO: add call to mouseMoveEvent or factor out highlighting code
-            # into another function so that single clicks still add points
+            self.grid_point_undo_stack.append([])
+            self.activatePointsInRadius(event.pos())
             event.accept()
 
     def mouseReleaseEvent(self, event):
@@ -333,9 +334,15 @@ class EditorView(QGraphicsView):
         if self.outlineItem:
             self.outlineItem.setVisible(enable)
 
-    def paintEvent(self, event):
-        super(EditorView, self).paintEvent(event)
-        p = QPainter(self.viewport())
+    def undo(self):
+        self.svgItem.undoDraw()
+
+    def redo(self):
+        self.svgItem.redoDraw()
+
+    # def paintEvent(self, event):
+    #     super(EditorView, self).paintEvent(event)
+    #     p = QPainter(self.viewport())
 
     def updateCursorCircle(self):
         self.removeItem(self.cursor_circle)

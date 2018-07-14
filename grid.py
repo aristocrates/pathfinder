@@ -54,7 +54,7 @@ class Grid:
                 ans.append(point)
         return ans
 
-    def setEnabledPoints(self, points_list):
+    def enablePoints(self, points_list):
         """
         Sets the points in points_list as enabled
         """

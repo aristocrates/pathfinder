@@ -98,14 +98,14 @@ def test_grid(random_seed = None):
     select_point = (1, 1)
     points_to_enable = g.pointsWithinRadius(select_point, rad)
     newly_enabled = g.notEnabledIn(points_to_enable)
-    g.setEnabledPoints(newly_enabled)
+    g.enablePoints(newly_enabled)
     assert len(points_to_enable) == len(newly_enabled)
     newly_enabled2 = g.notEnabledIn(points_to_enable)
     assert len(newly_enabled2) == 0
     point_append_list = [(4, 4), (3, 3)]
     point_append_list = [g.nearestPoint(k) for k in point_append_list]
     assert len(point_append_list) == len(g.notEnabledIn(point_append_list))
-    g.setEnabledPoints(point_append_list)
+    g.enablePoints(point_append_list)
     assert (len(g.enabledPoints())
             == len(newly_enabled) + len(point_append_list))
     g.clearEnabled()
@@ -142,7 +142,7 @@ def test_grid(random_seed = None):
         print("Try increasing repeat tries or decreasing total number")
         return
     assert len(g.enabledPoints()) == 0
-    g.setEnabledPoints(point_append_list2)
+    g.enablePoints(point_append_list2)
     # import pdb; pdb.set_trace()
     # print(len(g.enabledPoints()))
     assert len(g.enabledPoints()) == num_disable_point_test
